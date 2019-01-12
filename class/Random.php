@@ -142,7 +142,7 @@ class Random
                     $series[] = str_pad(random_int($min, $max), $length, '0', STR_PAD_LEFT);
                 break;
                 default:
-                    if (function_exists()) {
+                    if (function_exists($rand_func)) {
                         $series[] = str_pad($rand_func($min, $max), $length, '0', STR_PAD_LEFT);
                     }
                 break;
