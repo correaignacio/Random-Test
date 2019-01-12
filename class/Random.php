@@ -9,6 +9,8 @@ class Random
 {
     protected $items = [];
     protected $verbose = false;
+    protected $validCharacters = '0123456789';
+    protected $probabilityTolerance = 0.0001; // one in ten thousand
     protected $monobitTolerance = 0.01;
     protected $runTestTolerance = 1.96;
     protected $runTestToleranceA = 1.96;
@@ -33,6 +35,11 @@ class Random
         $this->items = is_string($items) ? array($items) : $items;
     }
 
+    public function setValidCharacters($validCharacters)
+    {
+        $this->validCharacters = $validCharacters;
+    }
+
     public function setMin($min)
     {
         $this->min = $min;
@@ -46,6 +53,11 @@ class Random
     public function setLength($length)
     {
         $this->length = $length;
+    }
+
+    public function setProbabilityTolerance($tolerance)
+    {
+        $this->probabilityTolerance = $tolerance;
     }
 
     public function setMonobitTolerance($tolerance)
@@ -66,10 +78,14 @@ class Random
     public function isRandom($item)
     {
         $ok = true;
-        $prob = $this->oneInTenThousand($item);
+        $prob = $this->probability($item);
         $binStr = $this->toBinary($item);
         $mbr = $this->monoBitTest($binStr);
         $rtr = $this->runTest($binStr);
+
+        if($prob > $this->probabilityTolerance) {
+            $ok = false;
+        }
         
         if($mbr <= $this->monobitTolerance) {
             $ok = false;
@@ -82,9 +98,10 @@ class Random
         }
 
         if ($this->verbose) {
+            $prob = round($prob, 5);
             $mbr = round($mbr, 5);
             $rtr = round($rtr, 5);
-            echo "$item - ($binStr) 1ofTenTh: $prob - Monobit: $mbr - RunTest: $rtr - " . ($ok ? "OK" : "NOT Random") . PHP_EOL;
+            echo "$item - ($binStr) Probability: $prob - Monobit: $mbr - RunTest: $rtr - " . ($ok ? "OK" : "NOT Random") . PHP_EOL;
         }
         
         
@@ -96,6 +113,7 @@ class Random
         $itemEval = [];
         if($this->verbose) {
             echo 'Parameter to evaluate: ' . PHP_EOL;
+            echo 'Probability tolerance: must be smaller than ' . $this->probabilityTolerance . PHP_EOL;
             echo 'Monobit tolerance: must be bigger than ' . $this->monobitTolerance . PHP_EOL;
             echo 'Run Test tolerance: must be ' . ($this->runTestFunc == 'A' ? 'smaller' : 'bigger') . ' than ' . ($this->runTestFunc == 'A' ? $this->runTestToleranceA : $this->runTestToleranceB) . PHP_EOL . PHP_EOL;
         }
@@ -107,6 +125,7 @@ class Random
         return $itemEval;
     }
 
+    // only generate numbers
     public function generateRandomSerials($q = 1, $rand_func = 'mt_rand')
     {
         $min = $this->min;
@@ -133,9 +152,17 @@ class Random
         return $series;
     }
 
-    public function oneInTenThousand($item) {
-        // TODO
-        return 0;
+    // one In Ten Thousand test
+    public function probability($item) {
+        // Variaciones con repeticion donde n es el numero de caracteres validos y p la longitud: n^p
+        // Ej: solo numeros del 0 al 9 y serie de 14 de largo: 10^14 = 100.000.000.000.000 posibilidades (casos posibles)
+        // Probabilidad de adivinar una serie es la division entre casos favorables y casos posibles: 1 / 100.000.000.000.000 < 1 / 10.000
+        $length = strlen($item);
+        $characters = strlen($this->validCharacters);
+        $posibilities = pow($characters, $length);
+        $probability = 1/$posibilities;
+
+        return $probability;
     }
 
     public function monoBitTest($binStr) {

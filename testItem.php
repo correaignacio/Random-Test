@@ -2,7 +2,7 @@
 
 include("class/Random.php");
 include("items.php");
-//$items = array("303030");
+//$items = array("50138305551869");
 $cant_items = 300;
 
 $random = new Random();
